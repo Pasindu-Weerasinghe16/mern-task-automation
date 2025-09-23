@@ -20,7 +20,8 @@ describe('Login Component', () => {
   test('renders login form by default', () => {
     render(<Login onLogin={mockOnLogin} />);
     
-    expect(screen.getByText('Login')).toBeTruthy();
+    // Use role-based queries to be more specific
+    expect(screen.getByRole('heading', { name: 'Login' })).toBeTruthy();
     expect(screen.getByPlaceholderText('Email')).toBeTruthy();
     expect(screen.getByPlaceholderText('Password')).toBeTruthy();
   });
@@ -47,7 +48,10 @@ describe('Login Component', () => {
     fireEvent.change(screen.getByPlaceholderText('Password'), {
       target: { value: 'password123' }
     });
-    fireEvent.click(screen.getByText('Login'));
+    
+    // Click the login button specifically
+    const loginButton = screen.getByRole('button', { name: 'Login' });
+    fireEvent.click(loginButton);
 
     await waitFor(() => {
       expect(axios.post).toHaveBeenCalled();
