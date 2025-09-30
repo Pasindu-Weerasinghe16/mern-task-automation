@@ -1,0 +1,199 @@
+{
+  "info": {
+    "name": "MERN API Debug Tests",
+    "description": "Diagnostic tests to debug API issues",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Server Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Server is running', function () {",
+              "    pm.expect([200, 404]).to.include(pm.response.code);",
+              "    console.log('Server Status:', pm.response.code);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Registration Debug Test",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"testuser\",\n  \"email\": \"test@example.com\",\n  \"password\": \"TestPass123!\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/auth/register",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "auth", "register"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Registration endpoint responds', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 400, 409, 500]);",
+              "});",
+              "",
+              "console.log('Response Status:', pm.response.code);",
+              "console.log('Response Body:', pm.response.text());",
+              "",
+              "if (pm.response.code === 400) {",
+              "    pm.test('Validation error details provided', function () {",
+              "        const response = pm.response.json();",
+              "        console.log('Validation Error Details:', JSON.stringify(response, null, 2));",
+              "        pm.expect(response).to.have.property('message');",
+              "    });",
+              "} else if (pm.response.code === 500) {",
+              "    pm.test('Server error details logged', function () {",
+              "        console.log('Server Error Response:', pm.response.text());",
+              "        pm.expect(pm.response.code).to.equal(500);",
+              "    });",
+              "} else if (pm.response.code === 201) {",
+              "    pm.test('Registration successful', function () {",
+              "        const response = pm.response.json();",
+              "        pm.expect(response).to.have.property('token');",
+              "        pm.collectionVariables.set('authToken', response.token);",
+              "        console.log('Registration Success! Token:', response.token.substring(0, 20) + '...');",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Login Debug Test",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"TestPass123!\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/auth/login",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "auth", "login"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('Login Response Status:', pm.response.code);",
+              "console.log('Login Response Body:', pm.response.text());",
+              "",
+              "pm.test('Login endpoint responds', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 401, 500]);",
+              "});",
+              "",
+              "if (pm.response.code === 200) {",
+              "    pm.test('Login successful', function () {",
+              "        const response = pm.response.json();",
+              "        pm.expect(response).to.have.property('token');",
+              "        pm.collectionVariables.set('authToken', response.token);",
+              "        console.log('Login Success! Token:', response.token.substring(0, 20) + '...');",
+              "    });",
+              "} else if (pm.response.code === 401) {",
+              "    console.log('Login failed - User may not exist yet');",
+              "} else {",
+              "    console.log('Server error during login');",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Create Task Debug Test",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Debug Test Task\",\n  \"description\": \"Testing task creation endpoint\",\n  \"status\": \"pending\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/tasks",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "tasks"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('Create Task Response Status:', pm.response.code);",
+              "console.log('Create Task Response Body:', pm.response.text());",
+              "",
+              "pm.test('Task creation endpoint responds', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 401, 500]);",
+              "});",
+              "",
+              "if (pm.response.code === 201) {",
+              "    pm.test('Task created successfully', function () {",
+              "        const response = pm.response.json();",
+              "        pm.expect(response).to.have.property('_id');",
+              "        pm.expect(response).to.have.property('title');",
+              "        console.log('Task created with ID:', response._id);",
+              "    });",
+              "} else if (pm.response.code === 401) {",
+              "    console.log('Unauthorized - need to login first');",
+              "} else {",
+              "    console.log('Task creation error');",
+              "}"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
