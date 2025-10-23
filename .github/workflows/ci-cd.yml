@@ -62,4 +62,3 @@ jobs:
           cd frontend
           npm test -- --watchAll=false
 
-  # build job removed — workflow now only runs backend and frontend tests
