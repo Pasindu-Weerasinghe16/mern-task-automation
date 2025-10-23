@@ -37,7 +37,7 @@ async function uiElementsTest() {
     // Verify we're back to login mode
     await driver.wait(until.elementLocated(By.xpath('//button[text()="Login"]')), 5000);
     
-    console.log('✅ UI Elements and Navigation test passed');
+    console.log(' UI Elements and Navigation test passed');
   } finally {
     await driver.quit();
   }
@@ -67,7 +67,7 @@ async function formValidationTest() {
     // Should still be on login page due to validation
     await driver.wait(until.elementLocated(By.name('password')), 3000);
     
-    console.log('✅ Form Validation test passed');
+    console.log(' Form Validation test passed');
   } finally {
     await driver.quit();
   }
@@ -76,13 +76,13 @@ async function formValidationTest() {
 // Run tests
 (async function runTests() {
   try {
-    console.log('🧪 Starting UI Tests...');
+    console.log(' Starting UI Tests...');
     await uiElementsTest();
     await formValidationTest();
-    console.log('🎉 All UI tests passed!');
-    console.log('📝 Note: These tests verify UI functionality without requiring database connection');
+    console.log(' All UI tests passed!');
+    console.log(' Note: These tests verify UI functionality without requiring database connection');
   } catch (error) {
-    console.error('❌ Test failed:', error);
+    console.error(' Test failed:', error);
     process.exit(1);
   }
 })();
