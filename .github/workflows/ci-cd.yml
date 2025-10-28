@@ -1,4 +1,4 @@
-name: MERN CI Pipeline
+name: CI/CD
 
 on:
   push:
@@ -16,16 +16,16 @@ jobs:
         ports:
           - 27017:27017
         options: >-
-          --health-cmd "mongo --eval 'db.adminCommand({ ping: 1 })'"
-          --health-interval 10s
-          --health-timeout 5s
+          --health-cmd "mongo --eval 'db.adminCommand({ ping: 1 })'" 
+          --health-interval 10s 
+          --health-timeout 5s 
           --health-retries 10
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
           node-version: '18'
           cache: 'npm'
@@ -46,10 +46,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
           node-version: '18'
           cache: 'npm'
@@ -64,4 +64,66 @@ jobs:
         env:
           CI: true
         run: npm test -- --watchAll=false
+
+  test-ui:
+    name: Selenium UI tests (frontend)
+    runs-on: ubuntu-latest
+    needs: test-frontend
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Google Chrome
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Install Xvfb (virtual display)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          Xvfb :99 -screen 0 1920x1080x24 &
+          echo "DISPLAY=:99" >> $GITHUB_ENV
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Start frontend dev server
+        working-directory: frontend
+        env:
+          BROWSER: none
+          PORT: 3000
+        run: |
+          nohup npm start >/dev/null 2>&1 &
+          echo $! > $GITHUB_WORKSPACE/frontend-devserver.pid
+
+      - name: Wait for app to be ready
+        run: |
+          for i in {1..90}; do
+            if curl -sf http://localhost:3000 > /dev/null; then
+              echo "App is up"; exit 0; fi
+            echo "Waiting for app to start..."; sleep 2;
+          done
+          echo "App failed to start"; exit 1
+
+      - name: Run Selenium UI tests
+        working-directory: frontend
+        env:
+          DISPLAY: :99
+        run: node tests/ui-tests.js
+
+      - name: Stop frontend dev server
+        if: always()
+        run: |
+          if [ -f $GITHUB_WORKSPACE/frontend-devserver.pid ]; then
+            kill $(cat $GITHUB_WORKSPACE/frontend-devserver.pid) || true
+          else
+            pkill -f "react-scripts start" || true
+          fi
 
