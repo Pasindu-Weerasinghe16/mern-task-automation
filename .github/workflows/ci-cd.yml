@@ -15,50 +15,53 @@ jobs:
         image: mongo:4.4
         ports:
           - 27017:27017
+        options: >-
+          --health-cmd "mongo --eval 'db.adminCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
           cache-dependency-path: backend/package-lock.json
 
       - name: Install backend dependencies
-        run: |
-          cd backend
-          npm ci
+        working-directory: backend
+        run: npm ci
 
       - name: Run backend tests
-        run: |
-          cd backend
-          npm test
+        working-directory: backend
         env:
           MONGODB_URI_TEST: mongodb://localhost:27017/merntasks_test
           JWT_SECRET: test-secret
+        run: npm test
 
   test-frontend:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install frontend dependencies
-        run: |
-          cd frontend
-          npm ci
+        working-directory: frontend
+        run: npm ci
 
       - name: Run frontend tests
-        run: |
-          cd frontend
-          npm test -- --watchAll=false
+        working-directory: frontend
+        env:
+          CI: true
+        run: npm test -- --watchAll=false
 
