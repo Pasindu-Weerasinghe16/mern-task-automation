@@ -7,31 +7,56 @@ const User = require('../models/User');
 const router = express.Router();
 
 // Register with input validation
-router.post('/register', async (req, res) => {
+router.post('/register', [
+  body('username')
+    .isLength({ min: 3, max: 30 })
+    .withMessage('Username must be between 3 and 30 characters')
+    .isAlphanumeric()
+    .withMessage('Username must contain only letters and numbers')
+    .trim()
+    .escape(),
+  body('email')
+    .isEmail()
+    .withMessage('Please provide a valid email')
+    .normalizeEmail(),
+  body('password')
+    .isStrongPassword({
+      minLength: 8,
+      minLowercase: 1,
+      minUppercase: 1,
+      minNumbers: 1,
+      minSymbols: 1
+    })
+    .withMessage('Password must be at least 8 characters long and contain uppercase, lowercase, number, and symbol'),
+], async (req, res) => {
   try {
-    const { username, email, password } = req.body; // align with frontend
-    if (!username || !email || !password) {
-      return res.status(400).json({ message: 'username, email, and password are required' });
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        message: 'Validation failed',
+        errors: errors.array()
+      });
     }
 
-    const existing = await User.findOne({ email: email.toLowerCase() });
-    if (existing) {
-      return res.status(409).json({ message: 'Email already registered' });
+    const { username, email, password } = req.body;
+    
+    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+    if (existingUser) {
+      return res.status(400).json({ message: 'User already exists' });
     }
-
-    const hash = await bcrypt.hash(password, 10);
-    const user = await User.create({
-      username: username.trim(),
-      email: email.toLowerCase(),
-      password: hash,
+    
+    const user = new User({ username, email, password });
+    await user.save();
+    
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      expiresIn: '1h'
     });
-
-    return res.status(201).json({ id: user._id, username: user.username, email: user.email });
-  } catch (err) {
-    if (err?.code === 11000 && err?.keyPattern?.email) {
-      return res.status(409).json({ message: 'Email already registered' });
-    }
-    return res.status(400).json({ message: 'Invalid registration data', details: err?.message });
+    
+    res.status(201).json({ token, userId: user._id, username: user.username });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ message: 'Error creating user' });
   }
 });
 
