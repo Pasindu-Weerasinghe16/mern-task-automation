@@ -11,6 +11,8 @@ const taskRoutes = require('./routes/tasks');
 
 const app = express();
 
+app.use(express.json()); // must be before app.use('/api', routes)
+
 // Security Middleware
 app.use(helmet({
   contentSecurityPolicy: {
@@ -58,7 +60,7 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' })); // Limit payload size
 
 // Routes with rate limiting
- app.use('/api/auth', authRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 
 // Health check
